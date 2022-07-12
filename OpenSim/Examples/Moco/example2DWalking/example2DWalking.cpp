@@ -343,7 +343,7 @@ void gaitPrediction(const MocoSolution& gaitTrackingSolution) {
 int main() {
     try {
         const MocoSolution gaitTrackingSolution = gaitTracking();
-        gaitPrediction(gaitTrackingSolution);
+        //gaitPrediction(gaitTrackingSolution);
     } catch (const std::exception& e) { std::cout << e.what() << std::endl; }
     return EXIT_SUCCESS;
 }

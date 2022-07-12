@@ -196,6 +196,26 @@ void MocoContactTrackingGoal::initializeOnModelImpl(const Model& model) const {
             }
         }
 
+        // Compute cost scale factors.
+        groupInfo.costScale[0] =
+                SimTK::max(data.getDependentColumn(forceID + "x").abs());
+        groupInfo.costScale[1] =
+                SimTK::max(data.getDependentColumn(forceID + "y").abs());
+        groupInfo.costScale[2] =
+                SimTK::max(data.getDependentColumn(forceID + "z").abs());
+
+        if (groupInfo.costScale[0] < SimTK::SignificantReal) {
+            groupInfo.costScale[0] = 1.0;
+        }
+        if (groupInfo.costScale[1] < SimTK::SignificantReal) {
+            groupInfo.costScale[1] = 1.0;
+        }
+        if (groupInfo.costScale[2] < SimTK::SignificantReal) {
+            groupInfo.costScale[2] = 1.0;
+        }
+
+        //std::cout << "DEBUG costScale: " << groupInfo.costScale << std::endl;
+
         m_groups.push_back(groupInfo);
 
         // Check to see if the model contains a MocoScaleFactor associated with
@@ -334,7 +354,11 @@ void MocoContactTrackingGoal::calcIntegrandImpl(
             }
         }
 
+        // Compute the error.
         SimTK::Vec3 error3D = force_model - force_ref;
+
+        // Apply cost scaling.
+        error3D = error3D.elementwiseDivide(group.costScale);
 
         // Project the error.
         SimTK::Vec3 error;

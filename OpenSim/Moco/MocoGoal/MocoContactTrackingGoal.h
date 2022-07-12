@@ -313,6 +313,7 @@ private:
         std::vector<std::pair<const SmoothSphereHalfSpaceForce*, int>> contacts;
         GCVSplineSet refSplines;
         const PhysicalFrame* refExpressedInFrame = nullptr;
+        SimTK::Vec3 costScale;
     };
     mutable std::vector<GroupInfo> m_groups;
 
