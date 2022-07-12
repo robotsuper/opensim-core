@@ -1,7 +1,7 @@
 /* -------------------------------------------------------------------------- *
  * OpenSim: MocoOutputConstraint.cpp                                            *
  * -------------------------------------------------------------------------- *
- * Copyright (c) 2020 Stanford University and the Authors                     *
+ * Copyright (c) 2022 Stanford University and the Authors                     *
  *                                                                            *
  * Author(s): Nicholas Bianco                                                 *
  *                                                                            *
@@ -20,57 +20,134 @@
 
 using namespace OpenSim;
 
-MocoOutputConstraint::MocoOutputConstraint() {
-    constructProperties(); 
-}
-
 void MocoOutputConstraint::constructProperties() {
-    constructProperty_output_paths();
-    constructProperty_lower_bounds();
-    constructProperty_upper_bounds();
+    constructProperty_output_path("");
+    constructProperty_exponent(1);
+    constructProperty_output_index(-1);
 }
 
-void MocoOutputConstraint::addOutput(std::string outputPath, double lowerBound, 
-        double upperBound) {
-    append_output_paths(outputPath);
-    append_lower_bounds(lowerBound);
-    append_upper_bounds(upperBound);
-}
+void MocoOutputConstraint::initializeOnModelImpl(const Model&,
+                                                 const MocoProblemInfo&) const {
+    OPENSIM_THROW_IF_FRMOBJ(get_output_path().empty(), Exception,
+            "No output_path provided.");
+    std::string componentPath, outputName, channelName, alias;
+    AbstractInput::parseConnecteePath(
+            get_output_path(), componentPath, outputName, channelName, alias);
+    const auto& component = getModel().getComponent(componentPath);
+    const auto* abstractOutput = &component.getOutput(outputName);
 
+    OPENSIM_THROW_IF_FRMOBJ(get_output_index() < -1, Exception,
+            "Invalid Output index provided.");
+    m_minimizeVectorNorm = (get_output_index() == -1);
 
-void MocoOutputConstraint::initializeOnModelImpl(
-        const Model& model, const MocoProblemInfo&) const {
-    std::string componentPath;
-    std::string outputName;
-    std::string channelName;
-    std::string alias;
+    if (dynamic_cast<const Output<double>*>(abstractOutput)) {
+        m_data_type = Type_double;
+        OPENSIM_THROW_IF_FRMOBJ(get_output_index() != -1, Exception,
+                "An Output index was provided, but the Output is of type 'double'.")
 
-    std::vector<MocoBounds> bounds;
-    for (int i = 0; i < getProperty_output_paths().size(); ++i) {
-        AbstractInput::parseConnecteePath(get_output_paths(i), componentPath,
-                outputName, channelName, alias);
-        const auto& component = getModel().getComponent(componentPath);
-        const auto* abstractOutput = &component.getOutput(outputName);
-        if (!dynamic_cast<const Output<double>*>(abstractOutput)) {
-            OPENSIM_THROW_FRMOBJ(Exception,
-                    "Data type of specified model output not supported.");
+    } else if (dynamic_cast<const Output<SimTK::Vec3>*>(abstractOutput)) {
+        m_data_type = Type_Vec3;
+        OPENSIM_THROW_IF_FRMOBJ(get_output_index() > 2, Exception,
+                "The Output is of type 'SimTK::Vec3', but an Output index greater "
+                "than 2 was provided.");
+        m_index1 = get_output_index();
+
+    } else if (dynamic_cast<const Output<SimTK::SpatialVec>*>(abstractOutput)) {
+        m_data_type = Type_SpatialVec;
+        OPENSIM_THROW_IF_FRMOBJ(get_output_index() > 5, Exception,
+                "The Output is of type 'SimTK::SpatialVec', but an Output index "
+                "greater than 5 was provided.");
+        if (get_output_index() < 3) {
+            m_index1 = 0;
+            m_index2 = get_output_index();
+        } else {
+            m_index1 = 1;
+            m_index2 = get_output_index() - 3;
         }
-        m_outputs.emplace_back(abstractOutput);
-        bounds.emplace_back(get_lower_bounds(i), get_upper_bounds(i));
+
+    } else {
+        OPENSIM_THROW_FRMOBJ(Exception,
+                "Data type of specified model output not supported.");
     }
-    
-    setNumEquations(m_outputs.size());
-    MocoConstraintInfo info;
-    info.setBounds(bounds);
-    const_cast<MocoOutputConstraint*>(this)->setConstraintInfo(info);
+    m_output.reset(abstractOutput);
+
+    OPENSIM_THROW_IF_FRMOBJ(get_exponent() < 1, Exception,
+            "Exponent must be 1 or greater.");
+    int exponent = get_exponent();
+
+    // The pow() function gives slightly different results than x * x. On Mac,
+    // using x * x requires fewer solver iterations.
+    if (exponent == 1) {
+        m_power_function = [](const double& x) { return x; };
+    } else if (exponent == 2) {
+        m_power_function = [](const double& x) { return x * x; };
+    } else {
+        m_power_function = [exponent](const double& x) {
+            return pow(std::abs(x), exponent);
+        };
+    }
+
+    // Set the "depends-on stage", the SimTK::Stage we must realize to
+    // in order to calculate values from this output.
+    m_dependsOnStage = m_output->getDependsOnStage();
+
+    // There is only one scalar constraint per Output.
+    setNumEquations(1);
 }
 
 void MocoOutputConstraint::calcPathConstraintErrorsImpl(
         const SimTK::State& state, SimTK::Vector& errors) const {
-    getModel().realizeAcceleration(state);
-    //getModel().getSystem().realize(state, m_output->getDependsOnStage());
-    for (int i = 0; i < m_outputs.size(); ++i) {
-        errors[i] = static_cast<const Output<double>*>(m_outputs[i].get())
-                            ->getValue(state);
+    errors[0] = setValueToExponent(calcOutputValue(state));
+}
+
+double MocoOutputConstraint::calcOutputValue(const SimTK::State& state) const {
+    getModel().getSystem().realize(state, m_output->getDependsOnStage());
+
+    double value = 0;
+    if (m_data_type == Type_double) {
+        value = static_cast<const Output<double>*>(m_output.get())
+                        ->getValue(state);
+
+    } else if (m_data_type == Type_Vec3) {
+        if (m_minimizeVectorNorm) {
+            value = static_cast<const Output<SimTK::Vec3>*>(m_output.get())
+                        ->getValue(state).norm();
+        } else {
+            value = static_cast<const Output<SimTK::Vec3>*>(m_output.get())
+                        ->getValue(state)[m_index1];
+        }
+
+    } else if (m_data_type == Type_SpatialVec) {
+        if (m_minimizeVectorNorm) {
+            value = static_cast<const Output<SimTK::SpatialVec>*>(m_output.get())
+                        ->getValue(state).norm();
+        } else {
+            value = static_cast<const Output<SimTK::SpatialVec>*>(m_output.get())
+                        ->getValue(state)[m_index1][m_index2];
+        }
     }
+
+    return value;
+}
+
+void MocoOutputConstraint::printDescriptionImpl() const {
+    // Output path.
+    std::string str = fmt::format("        output: {}", getOutputPath());
+
+    // Output type.
+    std::string type;
+    if (m_data_type == Type_double) { type = "double"; }
+    else if (m_data_type == Type_Vec3) { type = "SimTK::Vec3"; }
+    else if (m_data_type == Type_SpatialVec) { type = "SimTK::SpatialVec"; }
+    str += fmt::format(", type: {}", type);
+
+    // Output index (if relevant).
+    if (getOutputIndex() != -1) {
+        str += fmt::format(", index: {}", getOutputIndex());
+    }
+
+    // Exponent.
+    str += fmt::format(", exponent: {}", getExponent());
+
+    log_cout(str);
 }

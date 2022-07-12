@@ -56,6 +56,8 @@ void MocoCasADiSolver::constructProperties() {
             MocoBounds(-1000.0, 1000.0));
     constructProperty_implicit_auxiliary_derivative_final_bounds(
             MocoBounds(-1000.0, 1000.0));
+
+    constructProperty_enforce_path_constraint_midpoints(false);
 }
 
 bool MocoCasADiSolver::isAvailable() {
@@ -333,6 +335,8 @@ std::unique_ptr<CasOC::Solver> MocoCasADiSolver::createCasOCSolver(
     casSolver->setOptimSolver(get_optim_solver());
     casSolver->setInterpolateControlMidpoints(
             get_interpolate_control_midpoints());
+    casSolver->setEnforcePathConstraintMidpoints(
+            get_enforce_path_constraint_midpoints());
     if (casProblem.getJarSize() > 1) {
         casSolver->setParallelism("thread", casProblem.getJarSize());
     }

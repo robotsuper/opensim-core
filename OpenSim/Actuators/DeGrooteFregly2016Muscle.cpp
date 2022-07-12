@@ -957,12 +957,12 @@ void DeGrooteFregly2016Muscle::replaceMuscles(
     for (int im = 0; im < muscleSet.getSize(); ++im) {
         auto& muscBase = muscleSet.get(im);
 
-        // pre-emptively create a default DeGrooteFregly2016Muscle
-        // (not ideal to do this)
+        // Pre-emptively create a default DeGrooteFregly2016Muscle
+        // (TODO: not ideal to do this).
         auto actu = OpenSim::make_unique<DeGrooteFregly2016Muscle>();
 
-        // peform muscle-model-specific mappings or throw exception if muscle
-        // not supported
+        // Perform muscle-model-specific mappings or throw exception if the
+        // muscle is not supported.
         if (auto musc = dynamic_cast<Millard2012EquilibriumMuscle*>(
                     &muscBase)) {
 
@@ -1068,4 +1068,20 @@ void DeGrooteFregly2016Muscle::replaceMuscles(
 
     model.finalizeFromProperties();
     model.finalizeConnections();
+}
+
+void DeGrooteFregly2016Muscle::extendPostScale(
+        const SimTK::State& s, const ScaleSet& scaleSet) {
+    Super::extendPostScale(s, scaleSet);
+
+    GeometryPath& path = upd_GeometryPath();
+    if (path.getPreScaleLength(s) > 0.0)
+    {
+        double scaleFactor = path.getLength(s) / path.getPreScaleLength(s);
+        upd_optimal_fiber_length() *= scaleFactor;
+        upd_tendon_slack_length() *= scaleFactor;
+
+        // Clear the pre-scale length that was stored in the GeometryPath.
+        path.setPreScaleLength(s, 0.0);
+    }
 }

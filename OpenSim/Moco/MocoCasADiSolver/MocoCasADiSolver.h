@@ -121,7 +121,10 @@ class OSIMMOCO_API MocoCasADiSolver : public MocoDirectCollocationSolver {
             MocoCasADiSolver, MocoDirectCollocationSolver);
 
 public:
-    OpenSim_DECLARE_PROPERTY(scale_variables_using_bounds, bool, "TODO");
+    OpenSim_DECLARE_PROPERTY(scale_variables_using_bounds, bool,
+            "Scale optimization variables based on the difference between "
+            "variable lower and upper bounds."
+            "Default: False.");
     OpenSim_DECLARE_PROPERTY(parameters_require_initsystem, bool,
             "Do some MocoParameters in the problem require invoking "
             "initSystem() to take effect properly? "
@@ -175,6 +178,11 @@ public:
             MocoBounds,
             "Bounds on final derivative variables for components with "
             "auxiliary dynamics in implicit form. Default: [-1000, 1000]");
+
+    OpenSim_DECLARE_PROPERTY(enforce_path_constraint_midpoints, bool,
+            "If the transcription scheme is set to 'hermite-simpson', then "
+            "enable this property to enforce MocoPathConstraints at mesh "
+            "interval midpoints. Default: false.");
 
     MocoCasADiSolver();
 

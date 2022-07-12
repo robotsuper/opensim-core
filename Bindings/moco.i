@@ -56,7 +56,6 @@ namespace OpenSim {
 %include <OpenSim/Moco/MocoFrameDistanceConstraint.h>
 %include <OpenSim/Moco/MocoOutputConstraint.h>
 
-
 %include <OpenSim/Moco/MocoProblemRep.h>
 
 // MocoProblemRep() is not copyable, but by default, SWIG tries to make a copy
@@ -146,8 +145,8 @@ namespace OpenSim {
 %include <OpenSim/Moco/MocoTrack.h>
 
 %include <OpenSim/Moco/MocoUtilities.h>
-%template(analyzeMocoTrajectory) OpenSim::analyze<double>;
-%template(analyzeMocoTrajectoryVec3) OpenSim::analyze<SimTK::Vec3>;
-%template(analyzeMocoTrajectorySpatialVec) OpenSim::analyze<SimTK::SpatialVec>;
+%template(analyzeMocoTrajectory) OpenSim::analyzeMocoTrajectory<double>;
+%template(analyzeMocoTrajectoryVec3) OpenSim::analyzeMocoTrajectory<SimTK::Vec3>;
+%template(analyzeMocoTrajectorySpatialVec) OpenSim::analyzeMocoTrajectory<SimTK::SpatialVec>;
 
 %include <OpenSim/Moco/ModelOperatorsDGF.h>
