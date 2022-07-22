@@ -44,7 +44,6 @@
 #include "MocoGoal/MocoStateTrackingGoal.h"
 #include "MocoGoal/MocoSumSquaredStateGoal.h"
 #include "MocoGoal/MocoTranslationTrackingGoal.h"
-#include "MocoGoal/MocoOutputTrackingGoal.h"
 #include "MocoGoal/MocoBaseOfSupportGoal.h"
 #include "MocoGoal/MocoStepTimeAsymmetryGoal.h"
 #include "MocoGoal/MocoStepLengthAsymmetryGoal.h"

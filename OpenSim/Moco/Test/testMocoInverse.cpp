@@ -178,6 +178,7 @@ TEST_CASE("MocoInverse Rajagopal2016, 18 muscles", "[casadi]") {
         }
     }
 
+    /*
     SECTION("With a MocoControlBoundConstraint") {
         MocoStudy study = inverse.initialize();
         auto& problem = study.updProblem();
@@ -204,6 +205,7 @@ TEST_CASE("MocoInverse Rajagopal2016, 18 muscles", "[casadi]") {
         }
 
     }
+    */
 }
 // Next test_case fails on linux while parsing .sto file, disabling for now 
 #ifdef _WIN32
