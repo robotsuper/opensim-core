@@ -10,6 +10,7 @@ v4.4.1
 ======
 - Update `report.py` to set specific colors for plotted trajectories
 - Made `Component::getSocketNames` a `const` member method (previously: non-const)
+- Added `ModOpReplaceMusclesWithPathActuators`
 
 v4.4
 ====
