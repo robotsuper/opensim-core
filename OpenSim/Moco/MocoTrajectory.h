@@ -423,6 +423,8 @@ public:
     /// trajectory.
     /// @note Overrides any existing acceleration values in the trajectory.
     void generateAccelerationsFromSpeeds();
+    // TODO
+    void trim(int newStartIndex, int newFinalIndex);
     /// @}
 
     /// @name Accessors

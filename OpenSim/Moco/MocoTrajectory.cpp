@@ -515,6 +515,39 @@ void MocoTrajectory::generateAccelerationsFromSpeeds() {
     m_derivative_names = derivativeNames;
 }
 
+void MocoTrajectory::trim(int newStartIndex, int newFinalIndex) {
+    OPENSIM_THROW_IF(newFinalIndex <= newStartIndex, Exception);
+
+    const int newLength = newFinalIndex - newStartIndex + 1;
+
+    const SimTK::Matrix statesBlock =
+            m_states(newStartIndex, 0, newLength, m_states.ncol());
+    m_states = statesBlock;
+
+    const SimTK::Matrix controlsBlock =
+            m_controls(newStartIndex, 0, newLength, m_controls.ncol());
+    m_controls = controlsBlock;
+
+    const SimTK::Matrix multipliersBlock =
+            m_multipliers(newStartIndex, 0, newLength, m_multipliers.ncol());
+    m_multipliers = multipliersBlock;
+
+    const SimTK::Matrix derivativesBlock =
+            m_derivatives(newStartIndex, 0, newLength, m_derivatives.ncol());
+    m_derivatives = derivativesBlock;
+
+    const SimTK::Matrix slacksBlock =
+            m_slacks(newStartIndex, 0, newLength, m_slacks.ncol());
+    m_slacks = slacksBlock;
+
+    SimTK::Vector newTime(newLength, 0.0);
+    for (int i = 0; i < newLength; ++i) {
+        newTime[i] = m_time[i + newStartIndex];
+    }
+
+    m_time = newTime;
+}
+
 double MocoTrajectory::getInitialTime() const {
     ensureUnsealed();
     OPENSIM_THROW_IF(m_time.size() == 0, Exception, "Time vector is empty.");
