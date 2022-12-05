@@ -299,6 +299,14 @@ class TestDataTable(unittest.TestCase):
         assert tableFlat.getNumRows()           == 3
         assert tableFlat.getNumColumns()        == 12
         print(tableFlat)
+        colVec = osim.Vector(3, 5.0)
+        # tableFlat.setDependentColumn('col0_6', colVec)
+        # tableFlat.setDependentColumnAtIndex(6, colVec)
+        colupd = tableFlat.getDependentColumn('col0_6')
+        colupd[0] = 5.0
+        assert tableFlat.getDependentColumnAtIndex(5)[0] == 5.0
+        # assert tableFlat.getDependentColumn('col1_1')[2] == 5.0
+        print(tableFlat)
 
     def test_TimeSeriesTable(self):
         print()

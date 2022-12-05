@@ -265,6 +265,10 @@ class TestTables {
         assert tableFlat.getNumRows()             == 3;
         assert tableFlat.getNumColumns()          == 12;
         System.out.println(tableFlat);
+        colVec = Vector(3, 5.0);
+        tableFlat.setDependentColumn("col0_6", colVec);
+        tableFlat.setDependentColumnAtIndex(6, colVec);
+        assert
     }
 
     public static void test_DataTableVec3() {
