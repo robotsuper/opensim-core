@@ -31,6 +31,16 @@ using namespace SimTK;
 
 %rename OpenSim::PathPointSet::clone unused_clone;
 
+// replace insert with a variant that takes ownership of passed in AbstractPathPoint.
+// in java the method 'insert' ends in super class so we can call it internally
+// and that hides the super class method 
+%typemap(javacode) OpenSim::PathPointSet %{
+    public boolean insert(int aIndex, AbstractPathPoint aObject) {
+       aObject.markAdopted();
+       return super.insert(aIndex, aObject);
+   }
+%}
+
 %extend OpenSim::Body {
     void getInertia(Array<double>& rInertia) {
         SimTK::Mat33 inertia= self->getInertia().toMat33();
@@ -202,6 +212,16 @@ using namespace SimTK;
   }
 %}
 
+%javamethodmodifiers OpenSim::TransformAxis::setFunction "private";
+%rename OpenSim::TransformAxis::setFunction private_setFunction;
+%typemap(javacode) OpenSim::TransformAxis %{
+  public void setFunction(Function func) {
+      func.markAdopted();
+      private_setFunction(func);
+  }
+%}
+
 %import "java_common.i"
 opensim_unique_ptr(OpenSim::PositionMotion);
 %include <Bindings/simulation.i>
+
