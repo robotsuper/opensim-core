@@ -99,6 +99,7 @@ protected:
             const IntegrandInput& input, SimTK::Real& integrand) const override;
     void calcGoalImpl(
             const GoalInput& input, SimTK::Vector& cost) const override;
+    bool getSupportsEndpointConstraintImpl() const override { return true; }
     void printDescriptionImpl() const override;
 
 private:
