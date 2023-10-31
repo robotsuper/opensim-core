@@ -34,6 +34,7 @@
 #include "Model/PhysicalOffsetFrame.h"
 
 #include "Model/AnalysisSet.h"
+#include "Model/Appearance.h"
 #include "Model/ForceSet.h"
 #include "Model/BodyScale.h"
 #include "Model/BodyScaleSet.h"
@@ -59,7 +60,7 @@
 #include "Model/PathPointSet.h"
 #include "Model/ConditionalPathPoint.h"
 #include "Model/MovingPathPoint.h"
-#include "Model/GeometryPath.h"
+#include "Model/PointBasedPath.h"
 #include "Model/FunctionBasedPath.h"
 #include "Model/PrescribedForce.h"
 #include "Model/ExternalForce.h"
@@ -154,6 +155,7 @@ OSIMSIMULATION_API void RegisterTypes_osimSimulation()
   try {
 
     Object::registerType( AnalysisSet() );
+    Object::registerType( Appearance() );
     Object::registerType( Model() );
     Object::registerType( BodyScale() );
     Object::registerType( BodyScaleSet());
@@ -192,7 +194,7 @@ OSIMSIMULATION_API void RegisterTypes_osimSimulation()
     Object::registerType( LineGeometry());
     Object::registerType( FrameGeometry());
     Object::registerType( Arrow());
-    Object::registerType( GeometryPath());
+    Object::registerType( PointBasedPath());
     Object::registerType( FunctionBasedPath());
 
     Object::registerType( ControlSet() );

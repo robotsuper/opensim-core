@@ -1,5 +1,5 @@
-#ifndef OPENSIM_GEOMETRY_PATH_H_
-#define OPENSIM_GEOMETRY_PATH_H_
+#ifndef OPENSIM_GEOMETRYPATH_H
+#define OPENSIM_GEOMETRYPATH_H
 /* -------------------------------------------------------------------------- *
  *                          OpenSim:  GeometryPath.h                          *
  * -------------------------------------------------------------------------- *
@@ -9,8 +9,8 @@
  * National Institutes of Health (U54 GM072970, R24 HD065690) and by DARPA    *
  * through the Warrior Web program.                                           *
  *                                                                            *
- * Copyright (c) 2005-2017 Stanford University and the Authors                *
- * Author(s): Peter Loan                                                      *
+ * Copyright (c) 2005-2023 Stanford University and the Authors                *
+ * Author(s): Nicholas Bianco, Joris Verhagen, Adam Kewley                    *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -23,13 +23,9 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-
-// INCLUDE
-#include "OpenSim/Simulation/Model/AbstractPath.h"
-#include "PathPointSet.h"
-#include <OpenSim/Simulation/Wrap/PathWrapSet.h>
-#include <OpenSim/Simulation/MomentArmSolver.h>
-
+#include <OpenSim/Simulation/osimSimulationDLL.h>
+#include <OpenSim/Simulation/Model/ModelComponent.h>
+#include <OpenSim/Simulation/Model/Appearance.h>
 
 #ifdef SWIG
     #ifdef OSIMSIMULATION_API
@@ -41,196 +37,194 @@
 namespace OpenSim {
 
 class Coordinate;
-class PointForceDirection;
-class ScaleSet;
-class WrapResult;
-class WrapObject;
 
 //=============================================================================
+//                              GEOMETRY PATH
 //=============================================================================
 /**
- * A concrete class representing a path (muscle, ligament, etc.) based on 
- * geometry objects in the model (e.g., PathPoints and PathWraps).
+ * A base class that represents a path that has a computable length and
+ * lengthening speed.
  *
- * @author Peter Loan
+ * This class is typically used in places where the model needs to simulate
+ * the changes in a path over time. For example, in `OpenSim::Muscle`s,
+ * `OpenSim::Ligament`s, etc.
+ *
+ * This class *only* defines a length and lengthening speed. We do not assume
+ * that an `OpenSim::GeometryPath` is a straight line between two points or
+ * assume that it is many straight lines between `n` points. The derived
+ * implementation may define a path using points, or it may define a path using
+ * a curve fit. It may also define a path based on analytical functions for the
+ * length and lengthening speed.
  */
-class OSIMSIMULATION_API GeometryPath : public AbstractPath {
-OpenSim_DECLARE_CONCRETE_OBJECT(GeometryPath, AbstractPath);
+class OSIMSIMULATION_API GeometryPath : public ModelComponent {
+OpenSim_DECLARE_ABSTRACT_OBJECT(GeometryPath, ModelComponent);
 
-//=============================================================================
-// DATA
-//=============================================================================
-private:
-    OpenSim_DECLARE_UNNAMED_PROPERTY(PathPointSet,
-        "The set of points defining the path");
-
-    OpenSim_DECLARE_UNNAMED_PROPERTY(PathWrapSet,
-        "The wrap objects that are associated with this path");
-
-    // Solver used to compute moment-arms. The GeometryPath owns this object,
-    // but we cannot simply use a unique_ptr because we want the pointer to be
-    // cleared on copy.
-    SimTK::ResetOnCopy<std::unique_ptr<MomentArmSolver> > _maSolver;
-
-    // populated from the current path cache variable whenever the implementation
-    // needs an array of `AbstractPathPoint`s
-    mutable SimTK::ResetOnCopy<Array<AbstractPathPoint*>> _currentPathPtrsCache;
-
-    mutable CacheVariable<double> _lengthCV;
-    mutable CacheVariable<double> _speedCV;
 public:
-    class PathElementLookup;
-private:
-    mutable CacheVariable<std::vector<PathElementLookup>> _currentPathCV;
-    mutable CacheVariable<SimTK::Vec3> _colorCV;
-    
+//=============================================================================
+// OUTPUTS
+//=============================================================================
+    OpenSim_DECLARE_OUTPUT(length, double, getLength, SimTK::Stage::Position);
+    OpenSim_DECLARE_OUTPUT(lengthening_speed, double, getLengtheningSpeed,
+            SimTK::Stage::Velocity);
+
+//=============================================================================
+// PROPERTIES
+//=============================================================================
+    OpenSim_DECLARE_UNNAMED_PROPERTY(Appearance,
+            "Default appearance attributes for this GeometryPath.");
+
 //=============================================================================
 // METHODS
 //=============================================================================
-    //--------------------------------------------------------------------------
-    // CONSTRUCTION
-    //--------------------------------------------------------------------------
-public:
+    
+    // CONSTRUCTION AND DESTRUCTION
     GeometryPath();
-    ~GeometryPath() override = default;
+    ~GeometryPath() noexcept override;
 
-    const PathPointSet& getPathPointSet() const { return get_PathPointSet(); }
-    PathPointSet& updPathPointSet() { return upd_PathPointSet(); }
-    const PathWrapSet& getWrapSet() const { return get_PathWrapSet(); }
-    PathWrapSet& updWrapSet() { return upd_PathWrapSet(); }
-    void addPathWrap(WrapObject& aWrapObject);
+    GeometryPath(const GeometryPath&);
+    GeometryPath& operator=(const GeometryPath&);
 
-    //--------------------------------------------------------------------------
-    // UTILITY
-    //--------------------------------------------------------------------------
-    AbstractPathPoint* addPathPoint(const SimTK::State& s, int index,
-        const PhysicalFrame& frame);
-    AbstractPathPoint* appendNewPathPoint(const std::string& proposedName, 
-        const PhysicalFrame& frame, const SimTK::Vec3& locationOnFrame);
-    bool canDeletePathPoint( int index);
-    bool deletePathPoint(const SimTK::State& s, int index);
+    GeometryPath(GeometryPath&& other);
+    GeometryPath& operator=(GeometryPath&& other);
+
+    // INTERFACE METHODS
+    //
+    // Concrete implementations of `GeometryPath` *must* provide these.
+
+    /**
+     * Get the current length of the path.
+     *
+     * Internally, this may use a variety of methods to figure out how long the
+     * path is, such as using spline-fits, or computing the distance between
+     * points in space. It is up to concrete implementations (e.g.,
+     * `PointBasedPath`) to provide a relevant implementation.
+     */
+    virtual double getLength(const SimTK::State& s) const = 0;
+
+    /**
+     * Get the lengthening speed of the path.
+     *
+     * Internally, this may use a variety of methods to figure out the
+     * lengthening speed. It might use the finite difference between two
+     * lengths, or an analytic solution, or always return `0.0`. It is up to
+     * concrete implementations (e.g., `PointBasedPath`) to provide a relevant
+     * implementation.
+     */
+    virtual double getLengtheningSpeed(const SimTK::State& s) const = 0;
+
+    /**
+     *  Add in the equivalent body and generalized forces to be applied to the
+     *  multibody system resulting from a tension along the GeometryPath.
+     *
+     *  @param         state           state used to evaluate forces
+     *  @param[in]     tension         scalar of the applied (+ve) tensile force
+     *  @param[in,out] bodyForces      Vector of forces (SpatialVec's) on bodies
+     *  @param[in,out] mobilityForces  Vector of generalized forces
+     */
+    virtual void addInEquivalentForces(const SimTK::State& state,
+            const double& tension,
+            SimTK::Vector_<SimTK::SpatialVec>& bodyForces,
+            SimTK::Vector& mobilityForces) const = 0;
+
+    /**
+     * Returns the moment arm of the path in the given state with respect to
+     * the specified coordinate.
+     */
+    virtual double computeMomentArm(const SimTK::State& s,
+            const Coordinate& aCoord) const = 0;
     
-    void moveUpPathWrap(const SimTK::State& s, int index);
-    void moveDownPathWrap(const SimTK::State& s, int index);
-    void deletePathWrap(const SimTK::State& s, int index);
-    bool replacePathPoint(const SimTK::State& s, AbstractPathPoint* oldPathPoint,
-        AbstractPathPoint* newPathPoint); 
+    /**
+     * Return whether or not a path can be visualized.
+     * 
+     * Concrete implementations may be visualizable (e.g., `PointBasedPath`) or
+     * they may not be and therefore must provide a relevant implementation. 
+     */
+    virtual bool isVisualPath() const = 0;
 
-    //--------------------------------------------------------------------------
-    // GET
-    //--------------------------------------------------------------------------
+    // DEFAULTED METHODS
+    //
+    // These are methods that for which GeometryPath provides default
+    // implementation.
 
-    /** %Set the value of the color cache variable owned by this %GeometryPath
-    object, in the cache of the given state. The value of this variable is used
-    as the color when the path is drawn, which occurs with the state realized 
-    to Stage::Dynamics. So you must call this method during realizeDynamics() or 
-    earlier in order for it to have any effect. **/
-    void setColor(const SimTK::State& s, const SimTK::Vec3& color) const override;
+    /**
+     * Get the default color of the path.
+     *
+     * Returns the color that will be used to initialize the color cache
+     * at the next extendAddToSystem() call. Use `getColor` to retrieve the
+     * (potentially different) color that will be used to draw the path.
+     */
+    const SimTK::Vec3& getDefaultColor() const;
 
-    /** Get the current value of the color cache entry owned by this
-    %GeometryPath object in the given state. You can access this value any time
-    after the state is initialized, at which point it will have been set to
-    the default color value specified in a call to setDefaultColor() earlier,
-    or it will have the default color value chosen by %GeometryPath.
-    @see setDefaultColor() **/
-    SimTK::Vec3 getColor(const SimTK::State& s) const override;
-
-    double getLength( const SimTK::State& s) const override;
-    void setLength( const SimTK::State& s, double length) const;
-    const Array<AbstractPathPoint*>& getCurrentPath( const SimTK::State& s) const;
-
-    double getLengtheningSpeed(const SimTK::State& s) const override;
-    void setLengtheningSpeed( const SimTK::State& s, double speed ) const;
-
-    /** get the path as PointForceDirections directions, which can be used
-        to apply tension to bodies the points are connected to.*/
-    void getPointForceDirections(const SimTK::State& s, 
-        OpenSim::Array<PointForceDirection*> *rPFDs) const;
-
-    /** add in the equivalent body and generalized forces to be applied to the 
-        multibody system resulting from a tension along the GeometryPath 
-    @param state    state used to evaluate forces
-    @param[in]  tension      scalar (double) of the applied (+ve) tensile force 
-    @param[in,out] bodyForces   Vector of SpatialVec's (torque, force) on bodies
-    @param[in,out] mobilityForces  Vector of generalized forces, one per mobility   
-    */
-    void addInEquivalentForces(const SimTK::State& state,
-                               const double& tension, 
-                               SimTK::Vector_<SimTK::SpatialVec>& bodyForces,
-                               SimTK::Vector& mobilityForces) const override;
+    /**
+     * Set the default color of the path.
+     *
+     * Sets the internal, default, color value for the path. This is the color
+     * that's used when the simulation is initialized (specifically, during the
+     * `extendAddToSystem` call).
+     *
+     * This color is not necessarily the *current* color of the path. Other code
+     * in the system (e.g. muscle implementations) may change the runtime color
+     * with `setColor`. Use `getColor`, with a particular simulation state, to
+     * get the color of the path in that state.
+     */
+    void setDefaultColor(const SimTK::Vec3& color);
     
-    bool isVisualPath() const override { return true; }
+    /**
+     * Get the current color of the path.
+     *
+     * This is the runtime, potentially state-dependent, color of the path. It
+     * is the color used to display the path in that state (e.g., for UI
+     * rendering).
+     *
+     * This color value is typically initialized with the default color (see:
+     * `getDefaultColor`), but the color can change between simulation states
+     * because downstream code (e.g. muscles) might call `setColor` to implement
+     * state-dependent path coloring.
+     * 
+     * If not overridden in concrete implementations, this method returns the
+     * default color.
+     */
+    virtual SimTK::Vec3 getColor(const SimTK::State& s) const;
     
-    //--------------------------------------------------------------------------
-    // COMPUTATIONS
-    //--------------------------------------------------------------------------
-    double computeMomentArm(const SimTK::State& s,
-                            const Coordinate& aCoord) const override;
+    /**
+     * Set the current color of the path.
+     *
+     * Internally, sets the current color value of the path for the provided
+     * state (e.g. using cache variables).
+     *
+     * The value of this variable is used as the color when the path is drawn,
+     * which occurs with the state realized to Stage::Dynamics. Therefore, you
+     * must call this method during realizeDynamics() or earlier in order for it
+     * to have any effect.
+     * 
+     * If not overridden in concrete implementations, this method does nothing.
+     */
+    virtual void setColor(
+            const SimTK::State& s, const SimTK::Vec3& color) const {};
 
-    //--------------------------------------------------------------------------
-    // SCALING
-    //--------------------------------------------------------------------------
-
-    /** Calculate the path length in the current body position and store it for
-        use after the Model has been scaled. */
-    void extendPreScale(const SimTK::State& s,
-                        const ScaleSet& scaleSet) override;
-
-    /** Recalculate the path after the Model has been scaled. */
-    void extendPostScale(const SimTK::State& s,
-                         const ScaleSet& scaleSet) override;
-
-    //--------------------------------------------------------------------------
-    // Visualization Support
-    //--------------------------------------------------------------------------
-    // Update the geometry attached to the path (location of path points and
-    // connecting segments all in global/inertial frame)
-    virtual void updateGeometry(const SimTK::State& s) const;
-
-protected:
-    // ModelComponent interface.
-    void extendConnectToModel(Model& aModel) override;
-    void extendInitStateFromProperties(SimTK::State& s) const override;
-    void extendAddToSystem(SimTK::MultibodySystem& system) const override;
-
-    // Visual support GeometryPath drawing in SimTK visualizer.
-    void generateDecorations(
-            bool                                        fixed,
-            const ModelDisplayHints&                    hints,
-            const SimTK::State&                         state,
-            SimTK::Array_<SimTK::DecorativeGeometry>&   appendToThis) const
-            override;
-
-    void extendFinalizeFromProperties() override;
-
+    /**
+     * Get the current length of the path, *before* the last set of scaling
+     * operations were applied to it.
+     *
+     * Internally, the path stores the original length in a `double` during
+     * `extendPreScale`. Therefore, be *very* careful with this method, because
+     * the recorded length is dependent on the length as computed during
+     * `extendPreScale`, which may have been called with a different state.
+     */
+    double getPreScaleLength(const SimTK::State& s) const;
+    void setPreScaleLength(const SimTK::State& s, double preScaleLength);
+    
 private:
+    // Used by `(get|set)PreLengthScale`. Used during `extend(Pre|Post)Scale` by
+    // downstream users of GeometryPath to cache the length of the path before
+    // scaling.
+    //
+    // Ideally, downstream classes would perform the caching themselves, because
+    // the GeometryPath API isn't an ideal place to store this information. This
+    // field is mostly here for backwards-compatability with the API.
+    double _preScaleLength = 0.0;
+};
 
-    void computePath(const SimTK::State& s ) const;
-    void computeLengtheningSpeed(const SimTK::State& s) const;
-    void applyWrapObjects(const SimTK::State& s, Array<AbstractPathPoint*>& path ) const;
-    double calcPathLengthChange(const SimTK::State& s, const WrapObject& wo, 
-                                const WrapResult& wr, 
-                                const Array<AbstractPathPoint*>& path) const; 
-    double calcLengthAfterPathComputation
-       (const SimTK::State& s, const Array<AbstractPathPoint*>& currentPath) const;
+} // namespace OpenSim
 
-    void constructProperties();
-    void namePathPoints(int aStartingIndex);
-    void placeNewPathPoint(const SimTK::State& s, SimTK::Vec3& aOffset, 
-                           int index, const PhysicalFrame& frame);
-    //--------------------------------------------------------------------------
-    // Implement Object interface.
-    //--------------------------------------------------------------------------
-    /** Override of the default implementation to account for versioning. */
-    void updateFromXMLNode(SimTK::Xml::Element& aNode, int versionNumber = -1) override;
-
-//=============================================================================
-};  // END of class GeometryPath
-//=============================================================================
-//=============================================================================
-
-} // end of namespace OpenSim
-
-#endif // OPENSIM_GEOMETRY_PATH_H_
-
-
+#endif // OPENSIM_GEOMETRYPATH_H

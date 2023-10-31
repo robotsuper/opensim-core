@@ -24,6 +24,7 @@
  * -------------------------------------------------------------------------- */
 
 #include "Model/AnalysisSet.h"
+#include "Model/Appearance.h"
 #include "Model/Bhargava2004MuscleMetabolicsProbe.h"
 #include "Model/Bhargava2004SmoothedMuscleMetabolics.h"
 #include "Model/Model.h"
@@ -52,7 +53,8 @@
 #include "Model/PathPointSet.h"
 #include "Model/ConditionalPathPoint.h"
 #include "Model/MovingPathPoint.h"
-#include "Model/GeometryPath.h"
+#include "Model/PointBasedPath.h"
+#include "Model/FunctionBasedPath.h"
 #include "Model/PrescribedForce.h"
 #include "Model/PointToPointSpring.h"
 #include "Model/ExpressionBasedPointToPointForce.h"

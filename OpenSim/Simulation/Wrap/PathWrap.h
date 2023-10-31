@@ -38,7 +38,7 @@ namespace OpenSim {
 
 class Model;
 class WrapObject;
-class GeometryPath;
+class PointBasedPath;
 
 /** @cond **/ // hide from Doxygen
 
@@ -125,7 +125,7 @@ private:
     WrapMethod _method;
 
     const WrapObject* _wrapObject;
-    const GeometryPath* _path;
+    const PointBasedPath* _path;
 
     WrapResult _previousWrap;  // results from previous wrapping
 

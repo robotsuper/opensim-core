@@ -176,9 +176,9 @@ void testComponentListConst() {
     }
     
     int numGeomPaths = 0;
-    ComponentList<const GeometryPath> geomPathList =
-        model.getComponentList<GeometryPath>();
-    for (const GeometryPath& gpath : geomPathList) {
+    ComponentList<const PointBasedPath> geomPathList =
+        model.getComponentList<PointBasedPath>();
+    for (const PointBasedPath& gpath : geomPathList) {
         (void)gpath; // Suppress unused variable warning.
         numGeomPaths++;
     }
@@ -198,9 +198,9 @@ void testComponentListConst() {
     cout << "Num all components = " << numComponents << endl;
     cout << "Num bodies = " << numBodies << endl;
     cout << "Num Muscles = " << numMuscles << endl;
-    cout << "Num GeometryPath components = " << numGeomPaths << endl;
+    cout << "Num PointBasedPath components = " << numGeomPaths << endl;
     // Components = Model + 3Body + 3Marker + 2(Joint+Coordinate) 
-    //              + 6(Muscle+GeometryPath)
+    //              + 6(Muscle+PointBasedPath)
 
     // To test states we must have added the components to the system
     // which is done when the model creates and initializes the system
@@ -328,8 +328,8 @@ void testComponentListNonConstWithConstIterator() {
     int numGeomPaths = 0;
     // Make the ComponentList const to force the range for loop to use the
     // const iterator.
-    const ComponentList<GeometryPath> geomPathList = model.updComponentList<GeometryPath>();
-    for (const GeometryPath& gpath : geomPathList) {
+    const ComponentList<PointBasedPath> geomPathList = model.updComponentList<PointBasedPath>();
+    for (const PointBasedPath& gpath : geomPathList) {
         (void)gpath; // Suppress unused variable warning.
         numGeomPaths++;
     }
@@ -350,7 +350,7 @@ void testComponentListNonConstWithConstIterator() {
     cout << "Num all components = " << numComponents << std::endl;
     cout << "Num bodies = " << numBodies << std::endl;
     cout << "Num Muscles = " << numMuscles << std::endl;
-    cout << "Num GeometryPath components = " << numGeomPaths << std::endl;
+    cout << "Num PointBasedPath components = " << numGeomPaths << std::endl;
 
     // To test states we must have added the components to the system
     // which is done when the model creates and initializes the system
@@ -446,8 +446,8 @@ void testComponentListNonConstWithNonConstIterator() {
     }
     
     int numGeomPaths = 0;
-    ComponentList<GeometryPath> geomPathList = model.updComponentList<GeometryPath>();
-    for (GeometryPath& gpath : geomPathList) {
+    ComponentList<PointBasedPath> geomPathList = model.updComponentList<PointBasedPath>();
+    for (PointBasedPath& gpath : geomPathList) {
         (void)gpath; // Suppress unused variable warning.
         numGeomPaths++;
         gpath.setName(gpath.getName());
@@ -466,7 +466,7 @@ void testComponentListNonConstWithNonConstIterator() {
     cout << "Num all components = " << numComponents << std::endl;
     cout << "Num bodies = " << numBodies << std::endl;
     cout << "Num Muscles = " << numMuscles << std::endl;
-    cout << "Num GeometryPath components = " << numGeomPaths << std::endl;
+    cout << "Num PointBasedPath components = " << numGeomPaths << std::endl;
 
     // To test states we must have added the components to the system
     // which is done when the model creates and initializes the system

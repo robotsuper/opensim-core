@@ -24,8 +24,8 @@
  * -------------------------------------------------------------------------- */
 
 #include "Actuator.h"
-#include "AbstractPath.h"
 #include "GeometryPath.h"
+#include "PointBasedPath.h"
 
 //=============================================================================
 //=============================================================================
@@ -49,7 +49,7 @@ public:
 //=============================================================================
 // PROPERTIES
 //=============================================================================
-    OpenSim_DECLARE_PROPERTY(path, AbstractPath,
+    OpenSim_DECLARE_PROPERTY(path, GeometryPath,
         "The path of the actuator which defines length and lengthening speed.");
     OpenSim_DECLARE_PROPERTY(optimal_force, double,
         "The maximum force this actuator can produce.");
@@ -68,8 +68,8 @@ public:
     // GET AND SET
     //--------------------------------------------------------------------------
     // Path
-    AbstractPath& updPath() { return upd_path(); }
-    const AbstractPath& getPath() const { return get_path(); }
+    GeometryPath& updPath() { return upd_path(); }
+    const GeometryPath& getPath() const { return get_path(); }
 
     template <typename PathType>
     PathType& updPath() {
@@ -89,11 +89,11 @@ public:
         return dynamic_cast<const PathType*>(&get_path());
     }
 
-    GeometryPath& updGeometryPath() {
-        return updPath<GeometryPath>();
+    PointBasedPath& updGeometryPath() {
+        return updPath<PointBasedPath>();
     }
-    const GeometryPath& getGeometryPath() const {
-        return getPath<GeometryPath>();
+    const PointBasedPath& getGeometryPath() const {
+        return getPath<PointBasedPath>();
     }
     
     bool hasVisualPath() const override { return getPath().isVisualPath(); };
@@ -119,7 +119,7 @@ public:
     /** @note This function does not maintain the State and so should be used
      * only before a valid State is created.
      * @note Only valid if the `path` owned by this PathActuator supports
-     * PathPoint%s (e.g., GeometryPath). */
+     * PathPoint%s (e.g., PointBasedPath). */
     void addNewPathPoint(const std::string& proposedName,
                          const PhysicalFrame& aBody,
                          const SimTK::Vec3& aPositionOnBody);

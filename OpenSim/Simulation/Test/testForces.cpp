@@ -447,7 +447,7 @@ void testPathSpring() {
             "insertion", block, Vec3(0.1, 0.0, 0.0));
 
     // BUG in defining wrapping API requires that the Force containing the
-    // GeometryPath be connected to the model before the wrap can be added
+    // PointBasedPath be connected to the model before the wrap can be added
     osimModel.addForce(&spring);
 
     // Create the force reporter

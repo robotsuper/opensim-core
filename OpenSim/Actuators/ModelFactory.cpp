@@ -19,11 +19,11 @@
 #include "ModelFactory.h"
 
 #include <OpenSim/Actuators/CoordinateActuator.h>
+#include <OpenSim/Common/CommonUtilities.h>
+#include <OpenSim/Simulation/Model/PointBasedPath.h>
 #include <OpenSim/Simulation/SimbodyEngine/PinJoint.h>
 #include <OpenSim/Simulation/SimbodyEngine/SliderJoint.h>
 #include <OpenSim/Simulation/SimbodyEngine/WeldJoint.h>
-#include <OpenSim/Simulation/Model/GeometryPath.h>
-#include <OpenSim/Common/CommonUtilities.h>
 
 using namespace OpenSim;
 

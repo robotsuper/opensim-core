@@ -30,7 +30,7 @@ using namespace OpenSim;
 //=============================================================================
 // CONSTRUCTOR(S) AND DESTRUCTOR
 //=============================================================================
-FunctionBasedPath::FunctionBasedPath() : AbstractPath()
+FunctionBasedPath::FunctionBasedPath() : GeometryPath()
 {
     setAuthors("Nicholas Bianco");
     constructProperties();

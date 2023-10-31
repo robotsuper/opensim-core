@@ -169,7 +169,7 @@ void testMomentArmsAcrossCompoundJoint()
 //==========================================================================================================
 // moment_arm = dl/dtheta, definition using inexact perturbation technique
 //==========================================================================================================
-double computeMomentArmFromDefinition(const SimTK::State &s, const GeometryPath &path, const Coordinate &coord)
+double computeMomentArmFromDefinition(const SimTK::State &s, const PointBasedPath&path, const Coordinate &coord)
 {
     using namespace SimTK;
 

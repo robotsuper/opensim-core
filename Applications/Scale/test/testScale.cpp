@@ -122,26 +122,26 @@ void compareModelToStandard(const std::string&  resultFilename,
             + "match standard of " + target_loc.toString());
     }
 
-    // Check number of GeometryPath Components (otherwise, test will pass even
+    // Check number of PointBasedPath Components (otherwise, test will pass even
     // if path actuators, ligaments, etc. are missing from result model).
     {
-        const unsigned ngpResult = result->countNumComponents<GeometryPath>();
-        const unsigned ngpTarget = target->countNumComponents<GeometryPath>();
+        const unsigned ngpResult = result->countNumComponents<PointBasedPath>();
+        const unsigned ngpTarget = target->countNumComponents<PointBasedPath>();
         OPENSIM_THROW_IF(ngpResult != ngpTarget, Exception,
-            "Incorrect number of GeometryPath Components in result Model.");
+            "Incorrect number of PointBasedPath Components in result Model.");
     }
 
-    // Check GeometryPath path point locations.
+    // Check PointBasedPath path point locations.
     cout << "Checking path point locations..." << endl;
     SimTK::State& sResult = result->initSystem();
     SimTK::State& sTarget = target->initSystem();
-    for (const GeometryPath& gpResult : result->getComponentList<GeometryPath>())
+    for (const PointBasedPath& gpResult : result->getComponentList<PointBasedPath>())
     {
         const std::string& absPathStr = gpResult.getAbsolutePathString();
 
-        // Ensure GeometryPath exists in target model.
+        // Ensure PointBasedPath exists in target model.
         OPENSIM_THROW_IF(!target->hasComponent(absPathStr), Exception,
-            "GeometryPath '" + absPathStr + "' not found in standard model.");
+            "PointBasedPath '" + absPathStr + "' not found in standard model.");
 
         cout << "  '" << absPathStr << "'" << endl;
         for (int i = 0; i < gpResult.getPathPointSet().getSize(); ++i)
@@ -149,12 +149,12 @@ void compareModelToStandard(const std::string&  resultFilename,
             const Vec3& result_loc =
                 gpResult.getPathPointSet()[i].getLocation(sResult);
             const Vec3& target_loc =
-                target->getComponent<GeometryPath>(absPathStr)
+                target->getComponent<PointBasedPath>(absPathStr)
                 .getPathPointSet()[i].getLocation(sTarget);
 
             ASSERT_EQUAL(result_loc, target_loc, tol, __FILE__, __LINE__,
                 "The location of point " + std::to_string(i)
-                + " in GeometryPath '" + absPathStr + "' is "
+                + " in PointBasedPath '" + absPathStr + "' is "
                 + result_loc.toString() + ", which does not match standard of "
                 + target_loc.toString());
         }

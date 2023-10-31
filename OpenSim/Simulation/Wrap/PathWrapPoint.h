@@ -58,13 +58,13 @@ public:
     // careful: Although this class effectively represents a *sequence*
     //          of many wrapping points, these methods still need to be
     //          here for legacy compatability with `AbstractPathPoint`,
-    //          which is used extensively by `GeometryPath`.
+    //          which is used extensively by `PointBasedPath`.
     //
     // The implementation uses the first, or last, tangent point of the path
-    // wrap as a "best guess" of the location. `GeometryPath`, itself, handles
+    // wrap as a "best guess" of the location. `PointBasedPath`, itself, handles
     // stuffing the relevant data data into this class.
     //
-    // (later iterations of `GeometryPath` may ideally (e.g.) hold a sequence
+    // (later iterations of `PointBasedPath` may ideally (e.g.) hold a sequence
     //  of path *segments*, rather than path *points*)
     SimTK::Vec3 getLocation(const SimTK::State&) const override;
     void setLocation(const SimTK::State&, const SimTK::Vec3&) const;

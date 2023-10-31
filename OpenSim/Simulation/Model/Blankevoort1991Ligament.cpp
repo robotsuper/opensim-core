@@ -80,7 +80,7 @@ void Blankevoort1991Ligament::setNull()
 }
 
 void Blankevoort1991Ligament::constructProperties() {
-    constructProperty_path(GeometryPath());
+    constructProperty_path(PointBasedPath());
     constructProperty_linear_stiffness(1.0);
     constructProperty_transition_strain(0.06);
     constructProperty_damping_coefficient(0.003);
@@ -130,7 +130,7 @@ void Blankevoort1991Ligament::extendPostScale(
     const SimTK::State& s, const ScaleSet& scaleSet) {
     Super::extendPostScale(s, scaleSet);
 
-    AbstractPath& path = updPath();
+    GeometryPath& path = updPath();
     double slack_length = get_slack_length();
     if (path.getPreScaleLength(s) > 0.0)
     {
@@ -338,7 +338,7 @@ void Blankevoort1991Ligament::computeForce(const SimTK::State& s,
         // total force
         double force_total = getTotalForce(s);
 
-        const AbstractPath &path = getPath();
+        const GeometryPath&path = getPath();
 
         path.addInEquivalentForces(
                 s, force_total, bodyForces, generalizedForces);

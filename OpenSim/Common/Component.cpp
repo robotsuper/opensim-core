@@ -910,11 +910,11 @@ bool Component::isAllStatesVariablesListValid() const
     // 3. The list of all StateVariables is correctly sized (initialized)
     // 4. The System associated with the StateVariables is the current System
     // TODO: Enable the isObjectUpToDateWithProperties() check when computing
-    // the path of the GeomtryPath does not involve updating its PathPointSet.
-    // This change dirties the GeometryPath which is a property of a Muscle which
+    // the path of the PointBasedPath does not involve updating its PathPointSet.
+    // This change dirties the PointBasedPath which is a property of a Muscle which
     // is property of the Model. Therefore, during integration the Model is not
     // up-to-date and this causes a rebuilding of the cached StateVariables list.
-    // See GeometryPath::computePath() for the corresponding TODO that must be
+    // See PointBasedPath::computePath() for the corresponding TODO that must be
     // addressed before we can re-enable the isObjectUpToDateWithProperties
     // check.
     // It has been verified that the adding Components will invalidate the state

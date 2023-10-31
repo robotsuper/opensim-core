@@ -215,16 +215,16 @@ This iterator works only in the forward direction (not bidirectional).
 
 Here is an example of using this iterator with a range for loop (const_iterator):
 @code
-ComponentList<const GeometryPath> geomPathList = model.getComponentList<GeometryPath>();
-for (const GeometryPath& gpath : geomPathList) {
+ComponentList<const PointBasedPath> geomPathList = model.getComponentList<PointBasedPath>();
+for (const PointBasedPath& gpath : geomPathList) {
     // do something with gpath
 }
 @endcode
 
 Here is a similar example, but where you can modify the components:
 @code
-ComponentList<GeometryPath> geomPathList = model.updComponentList<GeometryPath>();
-for (GeometryPath& gpath : geomPathList) {
+ComponentList<PointBasedPath> geomPathList = model.updComponentList<PointBasedPath>();
+for (PointBasedPath& gpath : geomPathList) {
     // do something with gpath
 }
 @endcode

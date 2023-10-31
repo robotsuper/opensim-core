@@ -28,8 +28,8 @@
 // INCLUDES
 //=============================================================================
 #include "Force.h"
-#include "AbstractPath.h"
 #include "GeometryPath.h"
+#include "PointBasedPath.h"
 
 #ifdef SWIG
     #ifdef OSIMACTUATORS_API
@@ -47,7 +47,7 @@ class ScaleSet;
 //=============================================================================
 /**
  * A class implementing a ligament. The path of the ligament is
- * stored in an object derived from AbstractPath.
+ * stored in an object derived from GeometryPath.
  */
 class OSIMSIMULATION_API Ligament : public Force {
 OpenSim_DECLARE_CONCRETE_OBJECT(Ligament, Force);
@@ -55,7 +55,7 @@ public:
 //=============================================================================
 // PROPERTIES
 //=============================================================================
-    OpenSim_DECLARE_PROPERTY(path, AbstractPath,
+    OpenSim_DECLARE_PROPERTY(path, GeometryPath,
         "The path defines the length and lengthening speed of the PathSpring");
     OpenSim_DECLARE_PROPERTY(resting_length, double,
         "resting length of the ligament");
@@ -76,8 +76,8 @@ public:
     //--------------------------------------------------------------------------
     // PATH
     //--------------------------------------------------------------------------
-    AbstractPath& updPath() { return upd_path(); }
-    const AbstractPath& getPath() const { return get_path(); }
+    GeometryPath& updPath() { return upd_path(); }
+    const GeometryPath& getPath() const { return get_path(); }
 
     template <typename PathType>
     PathType& updPath() {
@@ -97,11 +97,11 @@ public:
         return dynamic_cast<const PathType*>(&get_path());
     }
 
-    GeometryPath& updGeometryPath() {
-        return updPath<GeometryPath>();
+    PointBasedPath& updGeometryPath() {
+        return updPath<PointBasedPath>();
     }
-    const GeometryPath& getGeometryPath() const {
-        return getPath<GeometryPath>();
+    const PointBasedPath& getGeometryPath() const {
+        return getPath<PointBasedPath>();
     }
     
     bool hasVisualPath() const override { return getPath().isVisualPath(); };

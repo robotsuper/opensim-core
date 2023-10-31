@@ -23,8 +23,8 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-#include "OpenSim/Simulation/Model/AbstractPath.h"
 #include "OpenSim/Common/Function.h"
+#include "OpenSim/Simulation/Model/GeometryPath.h"
 
 namespace OpenSim {
 
@@ -69,7 +69,7 @@ namespace OpenSim {
  *
  * @note The moment arm expression above assumes that all constraints in the
  * model are workless (i.e., no `MovingPathPoint`s). Other path types (e.g.,
- * `GeometryPath`) compute moment arms based on the generalized force applied to
+ * `PointBasedPath`) compute moment arms based on the generalized force applied to
  * joint given a unit force along the path, which does not rely on this
  * assumption (see `MomentArmSolver`). Please keep this in mind when providing
  * the path functions. See Sherman et al. (2013) for more details.
@@ -111,8 +111,8 @@ namespace OpenSim {
  *       Volume 7B: 9th International Conference on Multibody Systems,
  *       Nonlinear Dynamics, and Control.
  */
-class OSIMSIMULATION_API FunctionBasedPath : public AbstractPath {
-OpenSim_DECLARE_CONCRETE_OBJECT(FunctionBasedPath, AbstractPath);
+class OSIMSIMULATION_API FunctionBasedPath : public GeometryPath {
+OpenSim_DECLARE_CONCRETE_OBJECT(FunctionBasedPath, GeometryPath);
 
 public:
 //=============================================================================

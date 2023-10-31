@@ -64,7 +64,7 @@ Ligament::Ligament()
 void Ligament::constructProperties()
 {
     setAuthors("Peter Loan");
-    constructProperty_path(GeometryPath());
+    constructProperty_path(PointBasedPath());
     constructProperty_resting_length(0.0);
     constructProperty_pcsa_force(0.0);
 
@@ -193,7 +193,7 @@ void Ligament::extendPostScale(const SimTK::State& s, const ScaleSet& scaleSet)
 {
     Super::extendPostScale(s, scaleSet);
 
-    AbstractPath& path = updPath();
+    GeometryPath& path = updPath();
     if (path.getPreScaleLength(s) > 0.0)
     {
         double scaleFactor = path.getLength(s) / path.getPreScaleLength(s);

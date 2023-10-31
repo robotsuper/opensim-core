@@ -112,7 +112,7 @@ public:
 
     /** Perform any computations that must occur before ModelComponent::scale()
         is invoked on all ModelComponents in the Model. For example, a
-        GeometryPath must calculate and store its path length in the original
+        PointBasedPath must calculate and store its path length in the original
         model before scaling so that an owning Muscle can use this information
         to update the properties of the muscle after scaling. This method calls
         the virtual extendPreScale() method, which may be implemented by any
@@ -151,7 +151,7 @@ protected:
 
     /** Perform any computations that must occur before ModelComponent::scale()
         is invoked on all ModelComponents in the Model. For example, a
-        GeometryPath must calculate and store its path length in the original
+        PointBasedPath must calculate and store its path length in the original
         model before scaling so that an owning Muscle can use this information
         to update the properties of the muscle after scaling. This method is
         virtual and may be implemented by any subclass of ModelComponent, but

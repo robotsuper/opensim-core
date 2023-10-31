@@ -345,7 +345,7 @@ void testClutchedPathSpring()
 
     spring->updGeometryPath().appendNewPathPoint("insertion", *block, Vec3(0.1, 0.0 ,0.0));
 
-    // BUG in defining wrapping API requires that the Force containing the GeometryPath be
+    // BUG in defining wrapping API requires that the Force containing the PointBasedPath be
     // connected to the model before the wrap can be added
     model->addForce(spring);
 

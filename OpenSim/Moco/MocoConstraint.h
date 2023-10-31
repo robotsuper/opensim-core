@@ -137,7 +137,7 @@ private:
 // ============================================================================
 
 /** A path constraint to be enforced in the optimal control problem.
-The use of 'path' here is unrelated to muscle paths, GeometryPath,
+The use of 'path' here is unrelated to muscle paths, PointBasedPath,
 or file system paths (e.g., Path).
 @par For developers
 Every time the problem is solved, a copy of this constraint is used. An

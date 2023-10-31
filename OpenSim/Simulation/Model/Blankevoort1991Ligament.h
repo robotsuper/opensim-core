@@ -24,8 +24,8 @@
  * -------------------------------------------------------------------------- */
 
 #include <OpenSim/Simulation/Model/Force.h>
-#include <OpenSim/Simulation/Model/AbstractPath.h>
 #include <OpenSim/Simulation/Model/GeometryPath.h>
+#include <OpenSim/Simulation/Model/PointBasedPath.h>
 
 namespace OpenSim {
 
@@ -178,7 +178,7 @@ public:
 // PROPERTIES
 //=============================================================================
     
-    OpenSim_DECLARE_PROPERTY(path, AbstractPath,
+    OpenSim_DECLARE_PROPERTY(path, GeometryPath,
         "The path defines the length and lengthening speed of the ligament.")
     OpenSim_DECLARE_PROPERTY(linear_stiffness, double,
         "The slope of the linear region of the force-strain curve. " 
@@ -238,8 +238,8 @@ public:
         double linear_stiffness, double slack_length);
 
     // Path
-    AbstractPath& updPath() { return upd_path(); }
-    const AbstractPath& getPath() const { return get_path(); }
+    GeometryPath& updPath() { return upd_path(); }
+    const GeometryPath& getPath() const { return get_path(); }
 
     template <typename PathType>
     PathType& updPath() {
@@ -259,11 +259,11 @@ public:
         return dynamic_cast<const PathType*>(&get_path());
     }
 
-    GeometryPath& updGeometryPath() {
-        return updPath<GeometryPath>();
+    PointBasedPath& updGeometryPath() {
+        return updPath<PointBasedPath>();
     }
-    const GeometryPath& getGeometryPath() const {
-        return getPath<GeometryPath>();
+    const PointBasedPath& getGeometryPath() const {
+        return getPath<PointBasedPath>();
     }
     
     bool hasVisualPath() const override { return getPath().isVisualPath(); };
