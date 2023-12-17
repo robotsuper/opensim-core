@@ -3,6 +3,7 @@ add_subdirectory(UsefulComponents)
 add_subdirectory(Moco)
 
 file(GLOB TO_COMPILE "future*.cpp")
+file(GLOB TO_COMPILE "sandbox*.cpp")
 
 # These executables are *not* tests.
 
