@@ -24,6 +24,10 @@
 using namespace OpenSim;
 using namespace SimTK;
 
+// -----------------------------------------------------------------------------
+// Common
+// -----------------------------------------------------------------------------
+
 class ImplicitSurfaceData : public Component {
 OpenSim_DECLARE_CONCRETE_OBJECT(ImplicitSurfaceData, Component);
 
@@ -37,8 +41,8 @@ public:
     const Vec3& getOutwardNormal() const { return N; }
     void setOutwardNormal(const Vec3& N) { this->N = N; }
 
-    const Real& getConstraintResidual() const { return f; }
-    void setConstraintResidual(const Real& f) { this->f = f; }
+    const Real& getSurfaceConstraintResidual() const { return f; }
+    void setSurfaceConstraintResidual(const Real& f) { this->f = f; }
 
     const Vec3& getConstraintFirstPartialDerivative() const { return df; }
     void setConstraintFirstPartialDerivative(const Vec3& df) { this->df = df; }
@@ -46,11 +50,11 @@ public:
     const Vec6& getConstraintSecondPartialDerivative() const { return ddf; }
     void setConstraintSecondPartialDerivative(const Vec6& ddf) { this->ddf = ddf; }
 
-    const Vec3& getConstraintGradient() const { return G; }
-    void setConstraintGradient(const Vec3& G) { this->G = G; }
+    const Vec3& getSurfaceConstraintGradient() const { return G; }
+    void setSurfaceConstraintGradient(const Vec3& G) { this->G = G; }
 
-    const SymMat33& getConstraintHessian() const { return H; }
-    void setConstraintHessian(const SymMat33& H) { this->H = H; }
+    const SymMat33& getSurfaceConstraintHessian() const { return H; }
+    void setSurfaceConstraintHessian(const SymMat33& H) { this->H = H; }
 
     const Real& getGaussianCurvature() const { return K; }
     void setGaussianCurvature(const Real& K) { this->K = K; }
@@ -137,6 +141,9 @@ private:
     Real detT = 0;				// Determinant of metric tensor
 };
 
+// -----------------------------------------------------------------------------
+// Simbody's 'Integrator'
+// -----------------------------------------------------------------------------
 
 class Surface : public Component {
 OpenSim_DECLARE_ABSTRACT_OBJECT(Surface, Component);
@@ -197,19 +204,19 @@ protected:
 private:
 
     void evaluateSurfaceConstraintGradient() const {
-        implicitSurfaceData.setConstraintGradient(
+        implicitSurfaceData.setSurfaceConstraintGradient(
             implicitSurfaceData.getConstraintFirstPartialDerivative());
     }
 
     void evaluateSurfaceNormalFromGradient() const {
-        const auto& G = implicitSurfaceData.getConstraintGradient();
+        const auto& G = implicitSurfaceData.getSurfaceConstraintGradient();
         implicitSurfaceData.setOutwardNormal(G / G.norm());
     }
 
     void evaluateSurfaceConstraintHessian() const {
         Vec6 ddf = implicitSurfaceData.getConstraintSecondPartialDerivative();
         SymMat33 H(ddf[0], ddf[1], ddf[2], ddf[3], ddf[4], ddf[5]);
-        implicitSurfaceData.setConstraintHessian(H);
+        implicitSurfaceData.setSurfaceConstraintHessian(H);
     }
 
     //		G * A * G^T
@@ -239,7 +246,7 @@ private:
         const SymMat33 A(fyy*fzz-fyz*fyz, fxx*fzz-fxz*fxz, fxx*fyy-fxy*fxy,
                          fxz*fyz-fxy*fzz, fxy*fyz-fxz*fyy, fxx*fyy-fxy*fxy);
 
-        const auto& G = implicitSurfaceData.getConstraintGradient();
+        const auto& G = implicitSurfaceData.getSurfaceConstraintGradient();
 	    const Real normG = G.norm();
 
         const Real K = ~G * (A * G) / (normG * normG * normG * normG);
@@ -304,7 +311,7 @@ public:
 
         implicitSurfaceData.setSurfacePosition(p);
 
-        implicitSurfaceData.setConstraintResidual(
+        implicitSurfaceData.setSurfaceConstraintResidual(
             p[0] * p[0] + p[1] * p[1] - radius * radius);
 
         implicitSurfaceData.setConstraintFirstPartialDerivative(
@@ -423,6 +430,10 @@ public:
         ddr = -K * r;
     }
 
+    void setPoints(const Vector_<Vec3>& points) {
+        m_points = points;
+    }
+
 protected:
     //--------------------------------------------------------------------------
     // COMPONENT INTERFACE
@@ -487,7 +498,27 @@ protected:
         setStateVariableDerivativeValue(s, "da", dda);
         setStateVariableDerivativeValue(s, "dr", ddr);
     }
-    /// @}
+
+    void generateDecorations(bool fixed, const ModelDisplayHints& hints,
+            const State& s, Array_<DecorativeGeometry>& geometry) const override {
+        Super::generateDecorations(fixed, hints, s, geometry);
+
+        if (!m_points.size()) {
+            return;
+        }
+        Vec3 lastPos(m_points[0]);
+        for (int i = 1; i < (int)m_points.size(); ++i) {
+            Vec3 pos(m_points[i]);
+            // Line segments will be in ground frame
+            geometry.push_back(DecorativeLine(lastPos, pos)
+                                       .setLineThickness(4)
+                                       .setColor({1.0, 0, 0}).setBodyId(0).setIndexOnBody(i));
+            lastPos = pos;
+        }
+
+    }
+private:
+    Vector_<Vec3> m_points;
 };
 
 
@@ -643,15 +674,321 @@ private:
     Vector_<Vec3> m_points;
 };
 
+// -----------------------------------------------------------------------------
+// GeodesicIntegrator
+// -----------------------------------------------------------------------------
+
+class GeodesicSurfaceImpl {
+
+public:
+    GeodesicSurfaceImpl() = default;
+    virtual ~GeodesicSurfaceImpl() = default;
+
+    void evaluateSurface(const Vec3& p) const {
+        implicitSurfaceData.setSurfacePosition(p);
+
+        evaluateImplicitEquation(p);
+        evaluateSurfaceConstraintGradient();
+        evaluateSurfaceNormalFromGradient();
+        evaluateSurfaceConstraintHessian();
+        evaluateGaussianCurvatureImplicitly();
+    }
+
+    const ImplicitSurfaceData& getImplicitSurfaceData() const {
+        return implicitSurfaceData;
+    }
+
+    ImplicitSurfaceData& updImplicitSurfaceData() const {
+        return implicitSurfaceData;
+    }
+
+protected:
+    virtual void evaluateImplicitEquation(const SimTK::Vec3& p) const = 0;
+
+private:
+
+    void evaluateSurfaceConstraintGradient() const {
+        implicitSurfaceData.setSurfaceConstraintGradient(
+                implicitSurfaceData.getConstraintFirstPartialDerivative());
+    }
+
+    void evaluateSurfaceNormalFromGradient() const {
+        const auto& G = implicitSurfaceData.getSurfaceConstraintGradient();
+        implicitSurfaceData.setOutwardNormal(G / G.norm());
+    }
+
+    void evaluateSurfaceConstraintHessian() const {
+        Vec6 ddf = implicitSurfaceData.getConstraintSecondPartialDerivative();
+        SymMat33 H(ddf[0], ddf[1], ddf[2], ddf[3], ddf[4], ddf[5]);
+        implicitSurfaceData.setSurfaceConstraintHessian(H);
+    }
+
+    void evaluateGaussianCurvatureImplicitly() const {
+
+        Vec6 ddf = implicitSurfaceData.getConstraintSecondPartialDerivative();
+        const Real fxx = ddf[0];
+        const Real fyy = ddf[1];
+        const Real fzz = ddf[2];
+        const Real fxy = ddf[3];
+        const Real fxz = ddf[4];
+        const Real fyz = ddf[5];
+
+        const SymMat33 A(fyy*fzz-fyz*fyz, fxx*fzz-fxz*fxz, fxx*fyy-fxy*fxy,
+                fxz*fyz-fxy*fzz, fxy*fyz-fxz*fyy, fxx*fyy-fxy*fxy);
+
+        const auto& G = implicitSurfaceData.getSurfaceConstraintGradient();
+        const Real normG = G.norm();
+
+        const Real K = ~G * (A * G) / (normG * normG * normG * normG);
+        implicitSurfaceData.setGaussianCurvature(K);
+    }
+
+
+    mutable ImplicitSurfaceData implicitSurfaceData;
+};
+
+
+
+class CylinderGeodesicSurfaceImpl : public GeodesicSurfaceImpl {
+
+public:
+
+    CylinderGeodesicSurfaceImpl(const Real& radius) {
+        setRadius(radius);
+    }
+
+    void setRadius(const Real& radius) { this->radius = radius; }
+    const Real& getRadius() const { return radius; }
+
+    void evaluateImplicitEquation(const Vec3& p) const override {
+        ImplicitSurfaceData& implicitSurfaceData =
+                updImplicitSurfaceData();
+
+        implicitSurfaceData.setSurfacePosition(p);
+
+        implicitSurfaceData.setSurfaceConstraintResidual(
+                p[0] * p[0] + p[1] * p[1] - radius * radius);
+
+        implicitSurfaceData.setConstraintFirstPartialDerivative(
+                Vec3(2.0 * p[0], 2.0 * p[1], 0.0));
+
+        implicitSurfaceData.setConstraintSecondPartialDerivative(
+                Vec6(2.0, 2.0, 0.0, 0.0, 0.0, 0.0));
+    }
+
+
+private:
+    Real radius = 1.0;
+};
+
+// https://github.com/simbody/simbody/blob/0f0dcb9b214b2e7def038d50261c99f6eb4df166/SimTKmath/Geometry/src/GeodesicEquations.h
+// https://github.com/simbody/simbody/blob/0f0dcb9b214b2e7def038d50261c99f6eb4df166/SimTKmath/Geometry/src/Geodesic.cpp
+class GeodesicEquationsImplicitSurface {
+public:
+    // state y = q | u = px py pz jr jt | vx vy vz jrd jtd
+    // NQ, NC are required by the GeodesicIntegrator
+    enum { D = 3,       // 3 coordinates for a point on an implicit surface.
+        NJ = 2,      // Number of Jacobi field equations.
+        NQ = D+NJ,   // Number of 2nd order equations.
+        N  = 2*NQ,   // Number of differential equations.
+        NC = 3 };    // 3 constraints: point on surface, point velocity
+                     // along surface, unit velocity
+
+    GeodesicEquationsImplicitSurface(const GeodesicSurfaceImpl& surface) : _surface(surface) {}
+
+    // Calculate state derivatives ydot given time and state y.
+    void calcDerivs(Real t, const Vec<N>& y, Vec<N>& ydot) const {
+
+        const Vec3& p = getP(y);        // rename state variables
+        const Vec3& v = getV(y);
+        const Real& jr = getJRot(y);
+        const Real& jt = getJTrans(y);
+
+        // Evaluate the surface at p.
+        // TODO inefficent: should only calculate what we need.
+        _surface.evaluateSurface(p);
+        const auto& data = _surface.getImplicitSurfaceData();
+
+        const Vec3  g = data.getSurfaceConstraintGradient();
+        const SymMat33 H = data.getSurfaceConstraintHessian();
+        Real Kg = data.getGaussianCurvature();
+
+        const Real Gdotv = ~v*(H*v);
+        const Real L = Gdotv/(~g*g);    // Lagrange multiplier
+
+        // We have qdot = u; that part is easy.
+        updQ(ydot) = getU(y);
+
+        // These together are the udots.
+        Vec3& a     = updV(ydot);          // d/dt v
+        Real& jrdd  = updJRotDot(ydot);    // d/dt jdr
+        Real& jtdd  = updJTransDot(ydot);  // d/dt jdt
+
+        a    = -L*g;
+        jrdd = -Kg*jr;
+        jtdd = -Kg*jt;
+    }
+
+    // Calculate amount by which the given time and state y violate the
+    // constraints and return the constraint errors in cerr.
+    void calcConstraintErrors(Real t, const Vec<N>& y, Vec<NC>& cerr) const {
+        const Vec3& p = getP(y);
+        const Vec3& v = getV(y);
+
+        // Evaluate the surface at p.
+        // TODO inefficent: should only calculate what we need.
+        _surface.evaluateSurface(p);
+        const auto& data = _surface.getImplicitSurfaceData();
+
+        // This is the perr() equation that says the point must be on the surface.
+        cerr[0] = data.getSurfaceConstraintResidual();
+        // These are the two verr() equations. The first is the derivative of
+        // the above point-on-surface holonomic constraint above. The second is
+        // a nonholonomic velocity constraint restricting the velocity along
+        // the curve to be 1.
+        std::cout << "data.getSurfaceConstraintGradient: " << data.getSurfaceConstraintGradient() << std::endl;
+        cerr[1] = ~data.getSurfaceConstraintGradient()*v;
+        cerr[2] = v.norm() - 1;
+
+    }
+
+    // Given a time and state y, ensure that the state satisfies the constraints
+    // to within the indicated absolute tolerance, by performing the shortest
+    // (i.e. least squares) projection of the state back to the constraint
+    // manifold. Return false if the desired tolerance cannot be achieved.
+    // Otherwise (true return), a subsequent call to calcConstraintErrors()
+    // would return each |cerr[i]|<=consTol.
+    bool projectIfNeeded(Real consTol, Real t, Vec<N>& y) const {
+        const int MaxIter = 10;         // should take *far* fewer
+        const Real OvershootFac = Real(0.1);  // try to do better than consTol
+
+        const Real tryTol = consTol * OvershootFac;
+        Vec3& p = updP(y); // aliases for the state variables
+        Vec3& v = updV(y);
+
+        // Evaluate the surface at p.
+        // TODO inefficent: should only calculate what we need.
+        _surface.evaluateSurface(p);
+        const auto& data = _surface.getImplicitSurfaceData();
+
+        // Fix the position constraint first. This is a Newton iteration
+        // that modifies only the point location to make sure it remains on
+        // the surface. No position projection is done if we're already at
+        // tryTol, which is a little tighter than the requested consTol.
+
+        // NOTE: (sherm) I don't think this is exactly the right projection.
+        // Here we project down the gradient, but the final result won't
+        // be exactly the nearest point on the surface if the gradient changes
+        // direction on the way down. For correcting small errors this is
+        // probably completely irrelevant since the starting and final gradient
+        // directions will be the same.
+
+        Real perr, ptolAchieved;
+        int piters=0;
+        while (true) {
+            perr = data.getSurfaceConstraintResidual();
+            ptolAchieved = std::abs(perr);
+            std::cout << "ptolAchieved: " << ptolAchieved << std::endl;
+            if (ptolAchieved <= tryTol || piters==MaxIter)
+                break;
+
+            ++piters;
+            // We want a least squares solution dp to ~g*dp=perr which we
+            // get using the pseudoinverse: dp=pinv(~g)*perr, where
+            // pinv(~g) = g*inv(~g*g).
+            const Vec3 g = data.getSurfaceConstraintGradient();
+            const Vec3 pinvgt = g/(~g*g);
+            const Vec3 dp = pinvgt*perr;
+
+            p -= dp; // updates the state
+        }
+
+
+        // Now the velocities. There are two velocity constraints that have
+        // to be satisfied simultaneously. They are (1) the time derivative of
+        // the perr equation which we just solved, and (2) the requirement that
+        // the velocity magnitude be 1. So verr=~[ ~g*v, |v|-1 ]. You might
+        // think these need to be solved simultaneously to find the least
+        // squares dv, but dv can be determined by two orthogonal projections.
+        // The allowable velocity vectors form a unit circle whose normal is
+        // in the gradient direction. The least squares dv is the shortest
+        // vector from the end point of v to that circle. To find the closest
+        // point on the unit circle, first project the vector v onto the
+        // circle's plane by the shortest path (remove the normal component).
+        // Then stretch the result to unit length.
+        // First we solve the linear least squares problem ~g*(v+dv0)=0 for
+        // dv0, and set v0=v+dv0. Then set vfinal = v0/|v0|, giving dv=vfinal-v.
+
+        // We're going to project velocities unconditionally because we
+        // would have to evaluate the constraint anyway to see if it is
+        // violated and that is most of the computation we need to fix it.
+
+        const Vec3 g = data.getSurfaceConstraintGradient();
+        const Vec3 pinvgt = g/(~g*g);
+        const Real perrdot = ~g*v;
+
+        const Vec3 dv0 = pinvgt*perrdot;
+        const Vec3 v0 = v - dv0;    // fix direction
+        v = v0/v0.norm();           // fix length; updates state
+
+        const bool success = (ptolAchieved <= consTol);
+        return success;
+    }
+
+    // Utility routine for filling in the initial state given a starting
+    // point and direction. Note that there is no guarantee that the resulting
+    // state satisfies the constraints.
+    static Vec<N> getInitialState(const Vec3& P, const UnitVec3& tP) {
+        Vec<N> y;
+        updP(y)      = P;   updV(y)         = tP.asVec3();
+        updJRot(y)   = 0;   updJRotDot(y)   = 1;
+        updJTrans(y) = 1;   updJTransDot(y) = 0;
+        return y;
+    }
+
+    // These define the meanings of the state variables & derivatives.
+    static const Vec<NQ>& getQ(const Vec<N>& y) {return Vec<NQ>::getAs(&y[0]);}
+    static Vec<NQ>& updQ(Vec<N>& y) {return Vec<NQ>::updAs(&y[0]);}
+
+    static const Vec<NQ>& getU(const Vec<N>& y) {return Vec<NQ>::getAs(&y[NQ]);}
+    static Vec<NQ>& updU(Vec<N>& y) {return Vec<NQ>::updAs(&y[NQ]);}
+
+
+    // Extract the point location from a full state y.
+    static const Vec3& getP(const Vec<N>& y) {return Vec3::getAs(&y[0]);}
+    static Vec3& updP(Vec<N>& y) {return Vec3::updAs(&y[0]);}
+    // Extract the point velocity from a full state y.
+    static const Vec3& getV(const Vec<N>& y) {return Vec3::getAs(&y[NQ]);}
+    static Vec3& updV(Vec<N>& y) {return Vec3::updAs(&y[NQ]);}
+
+    // Extract the value of the rotational Jacobi field from a state y.
+    static const Real& getJRot(const Vec<N>& y) {return y[D];}
+    static Real& updJRot(Vec<N>& y) {return y[D];}
+    static const Real& getJRotDot(const Vec<N>& y) {return y[NQ+D];}
+    static Real& updJRotDot(Vec<N>& y) {return y[NQ+D];}
+    // Extract the value of the translational Jacobi field from a state y.
+    static const Real& getJTrans(const Vec<N>& y) {return y[D+1];}
+    static Real& updJTrans(Vec<N>& y) {return y[D+1];}
+    static const Real& getJTransDot(const Vec<N>& y) {return y[NQ+D+1];}
+    static Real& updJTransDot(Vec<N>& y) {return y[NQ+D+1];}
+
+private:
+
+    const GeodesicSurfaceImpl& _surface;
+
+};
+
 
 int main() {
+
     // Create a new OpenSim model.
     Model model;
     model.initSystem();
 
     Transform xform;
 
-    auto* frame = new PhysicalOffsetFrame("frame", model.getGround(), xform);
+    auto* frame =
+            new PhysicalOffsetFrame("frame", model.getGround(), xform);
     model.addComponent(frame);
 
     auto* cylinder = new CylinderSurface(*frame, 1.0, "cylinder");
@@ -663,48 +1000,121 @@ int main() {
     wrapCyl->set_length(4.0);
     model.addComponent(wrapCyl);
 
-    // Create a new OpenSim implicit geodesic equations.
-    auto* geodesicEquations = new ParametricGeodesicEquations(*cylinder,
-        "geodesic_equations");
+    // Integration using the ModelComponent interface
+    // (i.e., Simbody's Integrator)
+    if (false) {
+        // Create a new OpenSim implicit geodesic equations.
+        auto* geodesicEquations = new ParametricGeodesicEquations(
+                *cylinder, "geodesic_equations");
 
-    // Add the implicit geodesic equations to the model.
-    model.addComponent(geodesicEquations);
+        // Add the implicit geodesic equations to the model.
+        model.addComponent(geodesicEquations);
 
-    // Initialize the model.
-    auto* statesReporter = new StatesTrajectoryReporter();
-    statesReporter->setName("states_reporter");
-    statesReporter->set_report_time_interval(0.01);
-    model.addComponent(statesReporter);
+        // Initialize the model.
+        auto* statesReporter = new StatesTrajectoryReporter();
+        statesReporter->setName("states_reporter");
+        statesReporter->set_report_time_interval(0.01);
+        model.addComponent(statesReporter);
 
-    // Create a new OpenSim state.
-    model.setUseVisualizer(true);
-    auto state = model.initSystem();
+        // Create a new OpenSim state.
+        model.setUseVisualizer(true);
+        auto state = model.initSystem();
 
-    Manager manager(model);
-    state.setTime(0.0);
-    manager.initialize(state);
-    manager.integrate(0.9772);
+        Manager manager(model);
+        state.setTime(0.0);
+        manager.initialize(state);
+        manager.integrate(0.9772);
 
-    auto states = statesReporter->getStates();
-    TimeSeriesTable statesTable = states.exportToTable(model);
-    STOFileAdapter::write(statesTable, "geodesicWrappingStates.sto");
+        auto states = statesReporter->getStates();
+        TimeSeriesTable statesTable = states.exportToTable(model);
+        STOFileAdapter::write(statesTable, "geodesicWrappingStates.sto");
 
-    const auto& u = statesTable.getDependentColumn("/geodesic_equations/u");
-    const auto& v = statesTable.getDependentColumn("/geodesic_equations/v");
+        const auto& u = statesTable.getDependentColumn("/geodesic_equations/u");
+        const auto& v = statesTable.getDependentColumn("/geodesic_equations/v");
 
-    Vector_<Vec3> points((int)statesTable.getNumRows()+2, Vec3(0));
-    Transform xform2;
-    xform2.updR().setRotationToBodyFixedXYZ({-0.5*Pi, 0.0, 0});
-    points[0] = xform2.p() + xform2.R() * Vec3(-5, -1, -2);
-    for (int i = 1; i < (int)statesTable.getNumRows()+1; ++i) {
-        cylinder->evaluateSurface(u[i-1], v[i-1]);
-        const auto& x = cylinder->getParametricSurfaceData().getX();
+        Vector_<Vec3> points((int)statesTable.getNumRows() + 2, Vec3(0));
+        Transform xform2;
+        xform2.updR().setRotationToBodyFixedXYZ({-0.5 * Pi, 0.0, 0});
+        points[0] = xform2.p() + xform2.R() * Vec3(-5, -1, -2);
+        for (int i = 1; i < (int)statesTable.getNumRows() + 1; ++i) {
+            cylinder->evaluateSurface(u[i - 1], v[i - 1]);
+            const auto& x = cylinder->getParametricSurfaceData().getX();
 
-        Vec3 xGlobal = xform.p() + xform.R() * x;
-        points[i] = xGlobal;
+            Vec3 xGlobal = xform.p() + xform.R() * x;
+            points[i] = xGlobal;
+        }
+        points[points.size() - 1] = xform2.p() + xform2.R() * Vec3(5, 1, -1);
+        geodesicEquations->setPoints(points);
+
+        model.getVisualizer().show(state);
     }
-    points[points.size()-1] = xform2.p() + xform2.R() * Vec3(5, 1, -1);
-    geodesicEquations->setPoints(points);
 
-    model.getVisualizer().show(state);
+    // Integration using GeodesicIntegrator
+    if (true) {
+        auto* cylinderGeodesicSurfaceImpl = new CylinderGeodesicSurfaceImpl(1.0);
+        std::unique_ptr<GeodesicSurfaceImpl> cylinderGeodesicSurfaceImplPtr(
+                cylinderGeodesicSurfaceImpl);
+
+        GeodesicEquationsImplicitSurface geodesicEquations(*cylinderGeodesicSurfaceImpl);
+
+        // TODO constraint projections fail for values smaller than 1e-1 (for accuracy 1e-10)
+        Real accuracy = 1e-10;
+        Real consTol = 1e-1;
+        GeodesicIntegrator<GeodesicEquationsImplicitSurface> integrator(geodesicEquations, accuracy, consTol);
+
+        // Set the initial and final arc length.
+        Real s0 = 0.0;
+        Real sf = 0.9772;
+
+        // Set the initial state.
+        // Initial values based on Andreas' matlab code for a cylinder at a
+        // hard-coded orientation and position with specified origin and
+        // insertion points.
+        Vec3 origin(-5, -1, -2);
+        Vec3 insertion(5, 1, -1);
+        Vec3 p0(-0.5373, 0.8434, 0.0596);
+        UnitVec3 v0(0.8304, 0.5291, -0.1750);
+        Vec<10> y0 = GeodesicEquationsImplicitSurface::getInitialState(p0, v0);
+
+        // Initialize; will project constraints if necessary.
+        integrator.initialize(s0, y0);
+
+        // Integrate to final arc length, getting output every completed step.
+        std::vector<Vec3> pointsTemp;
+        while (true) {
+            pointsTemp.push_back(integrator.getY().getSubVec<3>(0));
+            std::cout << "t=" << integrator.getTime() << " y=" << integrator.getY() << "\n";
+            std::cout << "\n";
+            if (integrator.getTime() == sf)
+                break;
+            integrator.takeOneStep(sf);
+        }
+
+        // Only for visualization
+        // Must run in debug, otherwise the visualization window will close immediately
+        auto* eqns = new ImplicitGeodesicEquations(
+                *cylinder, "geodesic_equations");
+        model.addComponent(eqns);
+        model.setUseVisualizer(true);
+        auto state = model.initSystem();
+
+        Vector_<Vec3> points((int)pointsTemp.size()+2, Vec3(0));
+        // These transformations are just to account for the differences in
+        // conventions between the Matlab code and OpenSim.
+        Transform xform2;
+        xform2.updR().setRotationToBodyFixedXYZ({-0.5 * Pi, 0.0, 0});
+        points[0] = xform2.p() + xform2.R() * origin;
+        for (int i = 1; i < (int)pointsTemp.size() + 1; ++i) {
+            const auto& x = pointsTemp[i - 1];
+
+            Vec3 xGlobal = xform.p() + xform.R() * x;
+            points[i] = xGlobal;
+        }
+        points[points.size() - 1] = xform2.p() + xform2.R() * insertion;
+        eqns->setPoints(points);
+
+        model.getVisualizer().show(state);
+    }
+
+    return EXIT_SUCCESS;
 }
