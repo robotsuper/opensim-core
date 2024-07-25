@@ -58,11 +58,11 @@ public:
         }
     }
     casadi::Sparsity get_sparsity_in(casadi_int i) override;
-    bool has_jac_sparsity(casadi_int oind, casadi_int iind) const override {
+    bool has_jac_sparsity(casadi_int oind, casadi_int iind) const /* override */ {
         return !m_fullPointsForSparsityDetection->empty();
     }
     casadi::Sparsity get_jac_sparsity(casadi_int oind, casadi_int iind, 
-            bool symmetric) const override;
+            bool symmetric) const /* override */;
 
 protected:
     const Problem* m_casProblem;

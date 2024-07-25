@@ -176,13 +176,13 @@ SetDefaultCMakeBuildType()
 
 AddDependency(NAME       ezc3d
               DEFAULT    OFF
-              GIT_URL    https://github.com/pyomeca/ezc3d.git
+              GIT_URL    git@github.com:pyomeca/ezc3d.git
               GIT_TAG    Release_1.5.8
               CMAKE_ARGS -DBUILD_EXAMPLE:BOOL=OFF)
 
 AddDependency(NAME       simbody
               DEFAULT    ON
-              GIT_URL    https://github.com/simbody/simbody.git
+              GIT_URL    git@github.com:simbody/simbody.git
               GIT_TAG    d98f05fa1899633b544757e6c179562940f0849d
               CMAKE_ARGS -DBUILD_EXAMPLES:BOOL=OFF
                          -DBUILD_TESTING:BOOL=OFF
@@ -190,13 +190,13 @@ AddDependency(NAME       simbody
 
 AddDependency(NAME       docopt
               DEFAULT    ON
-              GIT_URL    https://github.com/docopt/docopt.cpp.git
+              GIT_URL    git@github.com:docopt/docopt.cpp.git
               GIT_TAG    3dd23e3280f213bacefdf5fcb04857bf52e90917)
 
 
 AddDependency(NAME       spdlog
               DEFAULT    ON
-              GIT_URL    https://github.com/gabime/spdlog.git
+              GIT_URL    git@github.com:gabime/spdlog.git
               GIT_TAG    v1.4.1
               CMAKE_ARGS -DSPDLOG_BUILD_BENCH:BOOL=OFF
                          -DSPDLOG_BUILD_TESTS:BOOL=OFF
@@ -205,7 +205,7 @@ AddDependency(NAME       spdlog
 
 AddDependency(NAME       catch2
               DEFAULT    ON
-              GIT_URL    https://github.com/catchorg/Catch2.git
+              GIT_URL    git@github.com:catchorg/Catch2.git
               GIT_TAG    v3.5.0)
 
 # Moco settings.
@@ -225,7 +225,7 @@ mark_as_advanced(SUPERBUILD_eigen)
 
 AddDependency(NAME colpack
               DEFAULT ON
-              GIT_URL https://github.com/opensim-org/colpack.git
+              GIT_URL    git@github.com:opensim-org/colpack.git
               GIT_TAG 72f691e91d59e8eb2123f258e67a4ddc72d105ee
               CMAKE_ARGS -DCMAKE_DEBUG_POSTFIX:STRING=_d
                          -DENABLE_EXAMPLES:BOOL=OFF
@@ -357,7 +357,7 @@ if(SUPERBUILD_casadi)
       AddDependency(NAME       casadi
                   DEFAULT    ON
                   DEPENDS    ipopt
-                  GIT_URL    https://github.com/casadi/casadi.git
+                  GIT_URL    git@github.com:casadi/casadi.git
                   GIT_TAG    3.6.5
                   CMAKE_ARGS -DWITH_IPOPT:BOOL=ON
                              -DIPOPT_LIBRARIES:FILEPATH=ipopt.dll.lib
@@ -374,7 +374,7 @@ if(SUPERBUILD_casadi)
     AddDependency(NAME       casadi
                   DEFAULT    ON
                   DEPENDS    ipopt
-                  GIT_URL    https://github.com/casadi/casadi.git
+                  GIT_URL    git@github.com:casadi/casadi.git
                   GIT_TAG    3.6.5
                   CMAKE_ARGS -DWITH_IPOPT:BOOL=ON
                              -DWITH_THREAD:BOOL=ON

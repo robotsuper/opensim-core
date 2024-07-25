@@ -58,15 +58,15 @@ elseif(TROPTER_COPY_DEPENDENCIES AND UNIX)
             # /usr/local/opt/boost/lib/libboost_system.so
             ${ColPack_ROOT_DIR}/lib/libColPack.so.0
             ${ColPack_ROOT_DIR}/lib/libColPack.so
-            ${IPOPT_LIBDIR}/libipopt.so.3.14.16
-            ${IPOPT_LIBDIR}/libipopt.so.3
-            ${IPOPT_LIBDIR}/libipopt.so
-            ${IPOPT_LIBDIR}/../../mumps/lib/libcoinmumps.so.3.0.5
-            ${IPOPT_LIBDIR}/../../mumps/lib/libcoinmumps.so.3
-            ${IPOPT_LIBDIR}/../../mumps/lib/libcoinmumps.so
-            ${IPOPT_LIBDIR}/../../metis/lib/libcoinmetis.so.1.3.10
-            ${IPOPT_LIBDIR}/../../metis/lib/libcoinmetis.so.1
-            ${IPOPT_LIBDIR}/../../metis/lib/libcoinmetis.so
+            # ${IPOPT_LIBDIR}/libipopt.so.3.14.16
+            # ${IPOPT_LIBDIR}/libipopt.so.3
+            # ${IPOPT_LIBDIR}/libipopt.so
+            # ${IPOPT_LIBDIR}/../../mumps/lib/libcoinmumps.so.3.0.5
+            # ${IPOPT_LIBDIR}/../../mumps/lib/libcoinmumps.so.3
+            # ${IPOPT_LIBDIR}/../../mumps/lib/libcoinmumps.so
+            # ${IPOPT_LIBDIR}/../../metis/lib/libcoinmetis.so.1.3.10
+            # ${IPOPT_LIBDIR}/../../metis/lib/libcoinmetis.so.1
+            # ${IPOPT_LIBDIR}/../../metis/lib/libcoinmetis.so
 
             ${gfortran}
             ${quadmath}

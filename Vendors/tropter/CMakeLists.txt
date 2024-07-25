@@ -70,7 +70,12 @@ set_package_properties(ColPack PROPERTIES
         TYPE REQUIRED
         PURPOSE "Exploiting sparsity structure of Jacobian")
 
-find_package(ADOLC REQUIRED)
+# find_package(ADOLC REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(ADOLC REQUIRED adolc)
+set(ADOLC_DIR "${ADOLC_PREFIX}")
+set(ADOLC_LIBRARIES "${ADOLC_LINK_LIBRARIES}")
+
 set_package_properties(ADOLC PROPERTIES
         URL https://projects.coin-or.org/ADOL-C
         TYPE REQUIRED
